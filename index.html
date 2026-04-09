@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Decision Support Dashboard · SC003 Sathakathon 2.0</title>
+  <meta name="description" content="Institutional Decision Support Analytics Dashboard — SC003 Sathakathon 2.0." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg:      #f0ede8;
+      --sidebar: #12122a;
+      --accent:  #534AB7;
+      --green:   #1D9E75;
+      --red:     #D85A30;
+      --blue:    #378ADD;
+      --pink:    #D4537E;
+      --text:    #1a1a18;
+      --muted:   #888;
+      --border:  #e5e2dc;
+      --card:    #ffffff;
+    }
+    body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text); }
+    #layout { display: flex; min-height: 100vh; }
+
+    /* sidebar */
+    #sidebar {
+      width: 230px;
+      background: var(--sidebar);
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+    .sb-logo { padding: 26px 20px 20px; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .sb-tag  { font-size: 10px; color: rgba(255,255,255,.38); letter-spacing: .1em; text-transform: uppercase; margin-bottom: 6px; }
+    .sb-title{ font-size: 15px; font-weight: 700; color: #fff; line-height: 1.4; }
+    .sb-stats{ padding: 14px 20px; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .sb-row  { display: flex; justify-content: space-between; margin-bottom: 7px; }
+    .sb-lbl  { font-size: 11px; color: rgba(255,255,255,.45); }
+    .sb-val  { font-size: 11px; font-weight: 600; color: #fff; }
+    #sb-nav  { padding: 14px 12px; flex: 1; }
+    .nb {
+      display: flex; align-items: center; gap: 9px;
+      width: 100%; text-align: left; padding: 10px 13px;
+      border-radius: 8px; margin-bottom: 4px;
+      font-size: 13px; font-weight: 500; border: none; cursor: pointer;
+      background: transparent; color: rgba(255,255,255,.6);
+      transition: background .15s, color .15s; font-family: inherit;
+    }
+    .nb:hover { background: rgba(255,255,255,.07); color: rgba(255,255,255,.9); }
+    .nb.active { background: var(--accent); color: #fff; box-shadow: 0 4px 14px rgba(83,74,183,.4); }
+    .sb-footer{ padding: 14px 20px; font-size: 10px; color: rgba(255,255,255,.22); border-top: 1px solid rgba(255,255,255,.06); margin-top: auto; }
+
+    /* main */
+    #main { flex: 1; padding: 36px 40px; overflow-y: auto; }
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* page header */
+    .ph { margin-bottom: 26px; }
+    .ph h1 { font-size: 24px; font-weight: 700; margin-bottom: 5px; }
+    .ph p  { font-size: 14px; color: var(--muted); }
+
+    /* grids */
+    .g3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 22px; }
+    .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .g2x{ display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-bottom: 22px; }
+
+    /* kpi card */
+    .kc {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px 22px; text-align: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,.04);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .kc:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,.09); }
+    .kc .lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; font-weight: 500; }
+    .kc .val { font-size: 30px; font-weight: 700; line-height: 1; }
+    .kc .unt { font-size: 13px; font-weight: 400; opacity: .65; margin-left: 2px; }
+
+    /* chart card */
+    .cc {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 20px 22px;
+      margin-bottom: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.04);
+    }
+    .cc .t { font-size: 12px; font-weight: 600; color: #666; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 14px; }
+
+    /* badges */
+    .badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+    .good    { background: #EAF3DE; color: #3B6D11; }
+    .warning { background: #FAEEDA; color: #854F0B; }
+    .danger  { background: #FCEBEB; color: #A32D2D; }
+    .success { background: #EAF3DE; color: #3B6D11; }
+
+    /* table */
+    table { width: 100%; font-size: 13px; border-collapse: collapse; }
+    thead tr { border-bottom: 1.5px solid #eee; }
+    th { text-align: left; padding: 8px 12px; color: var(--muted); font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+    tbody tr { border-bottom: 1px solid #f3f0eb; transition: background .1s; }
+    tbody tr:hover { background: #fafaf6; }
+    td { padding: 10px 12px; }
+
+    /* kpi monitor */
+    .mc {
+      background: #fafaf8; border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 18px;
+      display: flex; align-items: center; justify-content: space-between;
+      transition: box-shadow .15s;
+    }
+    .mc:hover { box-shadow: 0 4px 12px rgba(0,0,0,.07); }
+    .mc .ml { font-size: 11px; color: var(--muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: .04em; }
+    .mc .mv { font-size: 20px; font-weight: 700; }
+
+    /* AI panel */
+    .ai-btn {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: linear-gradient(135deg,#534AB7,#7b73d3);
+      color: #fff; border: none; border-radius: 10px;
+      padding: 10px 18px; font-size: 13px; font-weight: 600;
+      cursor: pointer; margin-top: 16px;
+      transition: opacity .2s, transform .1s; font-family: inherit;
+    }
+    .ai-btn:hover  { opacity: .9; transform: translateY(-1px); }
+    .ai-btn:disabled { opacity: .6; cursor: wait; }
+    .ai-out {
+      margin-top: 14px; padding: 16px 18px;
+      background: linear-gradient(135deg,#EEEDFE,#f0eeff);
+      border-radius: 12px; font-size: 14px; line-height: 1.7;
+      color: #3C3489; border: 1px solid #d5d0f5; display: none;
+    }
+    .ai-out p { margin-bottom: 6px; }
+
+    @keyframes pulse { 0%,100%{opacity:1}50%{opacity:.3} }
+  </style>
+</head>
+<body>
+<div id="layout">
+  <!-- Sidebar -->
+  <aside id="sidebar">
+    <div class="sb-logo">
+      <div class="sb-tag">SC003 · Sathakathon 2.0</div>
+      <div class="sb-title">Decision Support<br>Dashboard</div>
+    </div>
+    <div class="sb-stats" id="sb-stats"></div>
+    <nav id="sb-nav"></nav>
+    <div class="sb-footer">Sathakathon 2.0 · SC003<br>Decision Support Analytics</div>
+  </aside>
+
+  <!-- Main -->
+  <main id="main">
+    <div id="page-academic"    class="page active"></div>
+    <div id="page-departments" class="page"></div>
+    <div id="page-enrollment"  class="page"></div>
+    <div id="page-kpis"        class="page"></div>
+  </main>
+</div>
+
+<script>
+// ── DATA ─────────────────────────────────────────────────────────────────────
+const AP = [
+  {year:'2020',avgGPA:7.2,passRate:84,toppers:42},
+  {year:'2021',avgGPA:7.5,passRate:87,toppers:51},
+  {year:'2022',avgGPA:7.8,passRate:89,toppers:60},
+  {year:'2023',avgGPA:8.0,passRate:91,toppers:74},
+  {year:'2024',avgGPA:8.2,passRate:93,toppers:88},
+];
+
+const DEPTS = ['CS','EE','Mech','Civil','MBA','Bio'];
+const DC = DEPTS.map(dept=>({
+  dept,
+  avgGPA:       +(7+Math.random()*1.5).toFixed(1),
+  passRate:     Math.round(80+Math.random()*15),
+  facultyRatio: +(10+Math.random()*10).toFixed(1),
+  researchOutput: Math.round(5+Math.random()*30),
+  placementRate:  Math.round(75+Math.random()*20),
+}));
+
+const ET = [
+  {year:'2019',total:3200,male:1900,female:1300},
+  {year:'2020',total:3400,male:1950,female:1450},
+  {year:'2021',total:3600,male:2000,female:1600},
+  {year:'2022',total:3900,male:2100,female:1800},
+  {year:'2023',total:4200,male:2200,female:2000},
+  {year:'2024',total:4500,male:2250,female:2250},
+  {year:'2025',total:4800,male:2300,female:2500,pred:true},
+  {year:'2026',total:5100,male:2350,female:2750,pred:true},
+];
+
+const KPI_DATA = [
+  {name:'Overall pass rate',     value:'91.4%',  status:'good'},
+  {name:'Faculty-student ratio', value:'1:18',   status:'good'},
+  {name:'Research publications', value:'142 papers', status:'warning'},
+  {name:'Placement rate',        value:'87.2%',  status:'good'},
+  {name:'Student satisfaction',  value:'4.1/5',  status:'good'},
+  {name:'Dropout rate',          value:'4.8%',   status:'good'},
+  {name:'Fee collection rate',   value:'94.1%',  status:'warning'},
+  {name:'Library usage index',   value:'62%',    status:'danger'},
+];
+
+const ALERTS = [
+  {dept:'Civil',issue:'Pass rate dropped below 80%',    severity:'danger',  date:'2024-11'},
+  {dept:'MBA',  issue:'Enrollment down 12% YoY',        severity:'warning', date:'2024-10'},
+  {dept:'Bio',  issue:'Research output below target',    severity:'warning', date:'2024-11'},
+  {dept:'EE',   issue:'Placement rate exceeded target',  severity:'success', date:'2024-11'},
+];
+
+const AI_INSIGHTS = {
+  academic: [
+    '📈 GPA has grown 1.0 point over 5 years — sustain momentum by expanding peer-tutoring programs.',
+    '🎯 Pass rate hit 93% in 2024, surpassing the 90% target — document what worked for replication.',
+    '⭐ Topper count doubled since 2020; consider a fast-track honours programme to retain top talent.',
+  ],
+  departments: [
+    '🔬 CS and EE lead in placement and GPA — share curriculum best practices with lower-performing depts.',
+    '⚠️ Civil dept shows the widest variance across metrics — prioritise targeted faculty support.',
+    '📊 MBA research output is below average — incentivise industry-collaborative research proposals.',
+  ],
+  enrollment: [
+    '📉 Male enrollment growth is plateauing; female enrollment is catching up rapidly — positive trend.',
+    '🔮 2026 forecast shows 5,100 students — begin infrastructure planning (hostels, labs) now.',
+    '🌍 Consider international student outreach to diversify enrollment beyond the current growth curve.',
+  ],
+  kpis: [
+    '🚨 Library usage at 62% is the weakest KPI — pilot evening extended hours and digital resource access.',
+    '💰 Fee collection at 94.1% is close but below target — streamline payment plans and reminders.',
+    '✅ 5 of 8 KPIs are in "good" status; share the success formula across departments.',
+  ],
+};
+
+const SUMMARY = {students:'4,500',faculty:'250',departments:'6',avgGPA:'8.2/10',placement:'87.2%'};
+
+const PAGES = ['academic','departments','enrollment','kpis'];
+const NAV_ITEMS = [
+  {id:'academic',    label:'Academic Performance', icon:'📊'},
+  {id:'departments', label:'Dept Comparison',      icon:'🏛️'},
+  {id:'enrollment',  label:'Enrollment Trends',    icon:'📈'},
+  {id:'kpis',        label:'KPI Monitoring',       icon:'🎯'},
+];
+
+// ── HELPERS ──────────────────────────────────────────────────────────────────
+function el(tag,cls,html=''){
+  const e=document.createElement(tag);
+  if(cls) e.className=cls;
+  if(html) e.innerHTML=html;
+  return e;
+}
+function kpiCard(label,value,unit,color){
+  return `<div class="kc"><div class="lbl">${label}</div><div class="val" style="color:${color}">${value}<span class="unt">${unit}</span></div></div>`;
+}
+function badge(status){
+  return `<span class="badge ${status}">${status}</span>`;
+}
+function cc(title,inner){
+  return `<div class="cc"><div class="t">${title}</div>${inner}</div>`;
+}
+function aiPanel(key){
+  return `<button class="ai-btn" id="ai-btn-${key}" onclick="showInsight('${key}')">✨ Get AI Insights</button>
+          <div class="ai-out" id="ai-out-${key}"></div>`;
+}
+
+window.showInsight = function(key){
+  const btn = document.getElementById('ai-btn-'+key);
+  const out = document.getElementById('ai-out-'+key);
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Analysing...';
+  setTimeout(()=>{
+    out.innerHTML = AI_INSIGHTS[key].map(l=>`<p>${l}</p>`).join('');
+    out.style.display = 'block';
+    btn.innerHTML = '✨ Get AI Insights';
+    btn.disabled = false;
+  },1100);
+};
+
+// ── CHARTS store ─────────────────────────────────────────────────────────────
+const charts = {};
+
+// ── SIDEBAR ──────────────────────────────────────────────────────────────────
+function buildSidebar(){
+  const stats = document.getElementById('sb-stats');
+  Object.entries(SUMMARY).forEach(([k,v])=>{
+    stats.innerHTML += `<div class="sb-row"><span class="sb-lbl">${k.charAt(0).toUpperCase()+k.slice(1)}</span><span class="sb-val">${v}</span></div>`;
+  });
+  const nav = document.getElementById('sb-nav');
+  NAV_ITEMS.forEach(item=>{
+    const b = el('button','nb'+(item.id==='academic'?' active':''));
+    b.id = 'nav-'+item.id;
+    b.innerHTML = `<span>${item.icon}</span>${item.label}`;
+    b.onclick = ()=>switchPage(item.id);
+    nav.appendChild(b);
+  });
+}
+
+// ── NAV ──────────────────────────────────────────────────────────────────────
+function switchPage(id){
+  PAGES.forEach(p=>{
+    document.getElementById('page-'+p).classList.toggle('active',p===id);
+    document.getElementById('nav-'+p).classList.toggle('active',p===id);
+  });
+  // delayed chart resize to let CSS layout settle
+  setTimeout(()=>{ Object.values(charts).forEach(c=>c.resize&&c.resize()); },50);
+}
+
+// ── PAGE: ACADEMIC ────────────────────────────────────────────────────────────
+function buildAcademic(){
+  const last = AP[AP.length-1];
+  const div = document.getElementById('page-academic');
+  div.innerHTML = `
+    <div class="ph"><h1>Academic Performance</h1><p>Year-on-year trends in GPA, pass rates, and top achievers.</p></div>
+    <div class="g3">
+      ${kpiCard('Avg GPA (2024)',last.avgGPA,'/10','#534AB7')}
+      ${kpiCard('Pass Rate (2024)',last.passRate,'%','#1D9E75')}
+      ${kpiCard('Toppers (2024)',last.toppers,' students','#D85A30')}
+    </div>
+    ${cc('GPA Trend (2020–2024)','<canvas id="c-gpa" height="100"></canvas>')}
+    ${cc('Pass Rate & Toppers','<canvas id="c-pass" height="100"></canvas>')}
+    ${aiPanel('academic')}
+  `;
+  charts.gpa = new Chart(document.getElementById('c-gpa'),{
+    type:'line',
+    data:{
+      labels:AP.map(d=>d.year),
+      datasets:[{label:'Avg GPA',data:AP.map(d=>d.avgGPA),borderColor:'#534AB7',backgroundColor:'rgba(83,74,183,.08)',borderWidth:2.5,tension:.3,pointRadius:5,fill:true}]
+    },
+    options:{plugins:{legend:{display:false}},scales:{y:{min:6,max:10}}}
+  });
+  charts.pass = new Chart(document.getElementById('c-pass'),{
+    type:'bar',
+    data:{
+      labels:AP.map(d=>d.year),
+      datasets:[
+        {label:'Pass Rate %',data:AP.map(d=>d.passRate),backgroundColor:'#1D9E75',borderRadius:5,yAxisID:'y'},
+        {label:'Toppers',    data:AP.map(d=>d.toppers), backgroundColor:'#D85A30',borderRadius:5,yAxisID:'y1'},
+      ]
+    },
+    options:{scales:{y:{position:'left'},y1:{position:'right',grid:{display:false}}}}
+  });
+}
+
+// ── PAGE: DEPARTMENTS ─────────────────────────────────────────────────────────
+function buildDepts(){
+  const div = document.getElementById('page-departments');
+  div.innerHTML = `
+    <div class="ph"><h1>Department Comparison</h1><p>Performance across all departments side by side.</p></div>
+    <div class="g2">
+      ${cc('Radar: GPA & Pass Rate','<canvas id="c-radar" height="160"></canvas>')}
+      ${cc('Placement Rate by Dept','<canvas id="c-placement" height="160"></canvas>')}
+    </div>
+    ${cc('All Metrics Table',`
+      <table>
+        <thead><tr><th>Dept</th><th>Avg GPA</th><th>Pass Rate</th><th>Faculty Ratio</th><th>Research</th><th>Placement</th></tr></thead>
+        <tbody>${DC.map(d=>`<tr>
+          <td style="font-weight:600">${d.dept}</td>
+          <td>${d.avgGPA}</td><td>${d.passRate}%</td>
+          <td>1:${Math.round(d.facultyRatio)}</td>
+          <td>${d.researchOutput}</td><td>${d.placementRate}%</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    `)}
+    ${aiPanel('departments')}
+  `;
+  charts.radar = new Chart(document.getElementById('c-radar'),{
+    type:'radar',
+    data:{
+      labels:DC.map(d=>d.dept),
+      datasets:[
+        {label:'GPA×10',      data:DC.map(d=>d.avgGPA*10),      borderColor:'#534AB7',backgroundColor:'rgba(83,74,183,.15)'},
+        {label:'Pass Rate',   data:DC.map(d=>d.passRate),        borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,.15)'},
+      ]
+    },
+    options:{scales:{r:{min:0,max:100}},plugins:{legend:{position:'bottom'}}}
+  });
+  charts.placement = new Chart(document.getElementById('c-placement'),{
+    type:'bar',
+    data:{
+      labels:DC.map(d=>d.dept),
+      datasets:[{label:'Placement %',data:DC.map(d=>d.placementRate),backgroundColor:'#378ADD',borderRadius:5}]
+    },
+    options:{indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{min:0,max:100}}}
+  });
+}
+
+// ── PAGE: ENROLLMENT ──────────────────────────────────────────────────────────
+function buildEnrollment(){
+  const actual = ET.filter(d=>!d.pred);
+  const last   = actual[actual.length-1];
+  const div = document.getElementById('page-enrollment');
+  div.innerHTML = `
+    <div class="ph"><h1>Student Enrollment Trends</h1><p>Historical enrollment and 2-year forecast. Dashed = predicted.</p></div>
+    <div class="g3">
+      ${kpiCard('Total (2024)',last.total.toLocaleString(),' students','#534AB7')}
+      ${kpiCard('Male (2024)', last.male.toLocaleString(),'','#378ADD')}
+      ${kpiCard('Female (2024)',last.female.toLocaleString(),'','#D4537E')}
+    </div>
+    ${cc('Total Enrollment with 2-year Forecast','<canvas id="c-total" height="100"></canvas>')}
+    ${cc('Gender Breakdown (Actual)','<canvas id="c-gender" height="100"></canvas>')}
+    ${aiPanel('enrollment')}
+  `;
+  charts.total = new Chart(document.getElementById('c-total'),{
+    type:'line',
+    data:{
+      labels:ET.map(d=>d.year),
+      datasets:[{
+        label:'Total students',
+        data:ET.map(d=>d.total),
+        borderColor:'#534AB7',
+        backgroundColor:'rgba(83,74,183,.1)',
+        borderWidth:2.5,
+        tension:.3,
+        fill:true,
+        segment:{borderDash:ctx=>ET[ctx.p1DataIndex]?.pred?[6,4]:undefined},
+        pointStyle:ET.map(d=>d.pred?'triangle':'circle'),
+        pointRadius:5,
+      }]
+    },
+    options:{plugins:{legend:{display:false}}}
+  });
+  charts.gender = new Chart(document.getElementById('c-gender'),{
+    type:'bar',
+    data:{
+      labels:actual.map(d=>d.year),
+      datasets:[
+        {label:'Male',  data:actual.map(d=>d.male),  backgroundColor:'#378ADD',borderRadius:[0,0,4,4]},
+        {label:'Female',data:actual.map(d=>d.female),backgroundColor:'#D4537E',borderRadius:[4,4,0,0]},
+      ]
+    },
+    options:{scales:{x:{stacked:true},y:{stacked:true}},plugins:{legend:{position:'bottom'}}}
+  });
+}
+
+// ── PAGE: KPI MONITORING ──────────────────────────────────────────────────────
+function buildKpis(){
+  const div = document.getElementById('page-kpis');
+  div.innerHTML = `
+    <div class="ph"><h1>Institutional KPI Monitoring</h1><p>Live status of key performance indicators against targets.</p></div>
+    <div class="g2x">${KPI_DATA.map(k=>`
+      <div class="mc">
+        <div><div class="ml">${k.name}</div><div class="mv">${k.value}</div></div>
+        ${badge(k.status)}
+      </div>`).join('')}
+    </div>
+    ${cc('Alerts & Actions Required',`
+      <table>
+        <thead><tr><th>Department</th><th>Issue</th><th>Severity</th><th>Date</th></tr></thead>
+        <tbody>${ALERTS.map(a=>`<tr>
+          <td style="font-weight:600">${a.dept}</td>
+          <td>${a.issue}</td>
+          <td>${badge(a.severity)}</td>
+          <td style="color:#aaa">${a.date}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    `)}
+    ${aiPanel('kpis')}
+  `;
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+buildSidebar();
+buildAcademic();
+buildDepts();
+buildEnrollment();
+buildKpis();
+</script>
+</body>
+</html>
