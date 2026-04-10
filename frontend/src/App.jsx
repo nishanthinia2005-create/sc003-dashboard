@@ -6,6 +6,8 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, ComposedChart,
 } from 'recharts';
 import AIInsights from './AIInsights';
+import Login from './Login';
+import StudentDashboard from './StudentDashboard';
 
 // Empty string → Vite proxy forwards /api/* to http://localhost:4000 in dev.
 // In production set VITE_API_URL to your deployed backend URL (e.g. https://sc003.railway.app).
@@ -816,6 +818,34 @@ function AtRiskPage() {
   );
 }
 
+// ── ATTENDANCE SCANNER ────────────────────────────────────────────────────────
+function AttendanceScannerButton({ onTrigger }) {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+
+  const scan = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/api/trigger-attendance-check`, { method: 'POST' });
+      const data = await res.json();
+      setResult(`✓ ${data.added} alerts created`);
+      setTimeout(() => setResult(null), 3000);
+      onTrigger(); 
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button onClick={scan} disabled={loading} style={{ display:'flex', alignItems:'center', justifyContent:'center', gap:6, padding:'10px 16px', borderRadius:10, border:`1px dashed rgba(108,99,255,0.4)`, background:'rgba(108,99,255,0.1)', color: '#fff', fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'inherit', transition:'all .15s', width:'100%', marginBottom: 12 }}
+      onMouseEnter={e=>{if(!loading) e.currentTarget.style.background='rgba(108,99,255,0.2)';}}
+      onMouseLeave={e=>{if(!loading) e.currentTarget.style.background='rgba(108,99,255,0.1)';}}
+    >
+      {loading ? 'Scanning...' : result ? result : '🤖 Run Attendance Scan'}
+    </button>
+  );
+}
+
 // ── EXPORT SNAPSHOT ───────────────────────────────────────────────────────────
 function ExportButton() {
   const [loading, setLoading] = useState(false);
@@ -855,9 +885,18 @@ const NAV = [
 
 // ── ROOT APP ──────────────────────────────────────────────────────────────────
 export default function App() {
+  const [user, setUser] = useState(null);
   const [page, setPage] = useState('overview');
   const { data: summary } = useData('/api/summary');
-  const { data: alerts  } = useData('/api/alerts?resolved=false');
+  const { data: alerts, refetch: refetchAlerts  } = useData('/api/alerts?resolved=false');
+
+  if (!user) {
+    return <Login onLogin={setUser} />;
+  }
+
+  if (user.role === 'student') {
+    return <StudentDashboard user={user} onLogout={() => setUser(null)} />;
+  }
 
   const pages = {
     overview:    <OverviewPage    onNavigate={setPage} />,
@@ -937,8 +976,15 @@ export default function App() {
 
         {/* Export + footer */}
         <div style={{ padding:'14px 16px', borderTop:'1px solid rgba(255,255,255,0.06)' }}>
+          <AttendanceScannerButton onTrigger={refetchAlerts} />
           <ExportButton />
-          <div style={{ fontSize:9, color:'rgba(255,255,255,0.15)', marginTop:12, textAlign:'center', letterSpacing:'.05em' }}>
+          <button onClick={() => setUser(null)} style={{ display:'flex', justifyContent:'center', width:'100%', alignItems:'center', gap:6, padding:'8px 16px', borderRadius:10, border:`1px solid rgba(255,255,255,0.1)`, background:'transparent', color: C.muted, fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit', transition:'all .15s', marginTop:8 }}
+            onMouseEnter={e=>{e.currentTarget.style.background='rgba(255,255,255,0.05)'; e.currentTarget.style.color='#fff'}}
+            onMouseLeave={e=>{e.currentTarget.style.background='transparent'; e.currentTarget.style.color=C.muted}}
+          >
+            Logout
+          </button>
+          <div style={{ fontSize:9, color:'rgba(255,255,255,0.15)', marginTop:16, textAlign:'center', letterSpacing:'.05em' }}>
             SATHAKATHON 2.0 · SC003<br/>Decision Support Analytics
           </div>
         </div>

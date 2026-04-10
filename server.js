@@ -276,6 +276,53 @@ app.get('/api/students/at-risk', (req, res) => {
   res.json({ total: data.length, page, limit, data: data.slice(start, start + limit) });
 });
 
+// Get specific student by ID (mocks a real student if not in at-risk array)
+app.get('/api/students/:id', (req, res) => {
+  const idStr = req.params.id;
+  const existing = atRiskStudents.find(s => s.id === idStr);
+  if (existing) return res.json(existing);
+  
+  // Predictably mock using the digits from the ID
+  const numMatches = idStr.match(/\d+/);
+  const n = numMatches ? parseInt(numMatches[0]) : 42;
+  seed = 500 + n * 17;
+  const dept = DEPARTMENTS[Math.floor(seededRand() * DEPARTMENTS.length)];
+  const gpa = +(6.0 + seededRand() * 3.5).toFixed(1);
+  const attendance = Math.round(65 + seededRand() * 35);
+  
+  res.json({
+    id: idStr.startsWith('STU-') ? idStr : `STU-${idStr}`,
+    dept,
+    year: Math.ceil(seededRand() * 4),
+    gpa,
+    attendance,
+    risk: gpa < 5.5 || attendance < 55 ? 'high' : 'medium',
+    backlogs: Math.round(seededRand() * 2),
+  });
+});
+
+// Automated Attendance Checker
+app.post('/api/trigger-attendance-check', (req, res) => {
+  const lowAtt = atRiskStudents.filter(s => s.attendance < 60);
+  let newAlertsCount = 0;
+  lowAtt.forEach(stu => {
+    // Check if an alert for this student already exists
+    const exists = alerts.some(a => a.issue.includes(stu.id));
+    if (!exists) {
+      alerts.unshift({
+        id: uuidv4(),
+        dept: stu.dept,
+        issue: `Automated Alert: Student ${stu.id} has critical attendance (${stu.attendance}%)`,
+        severity: 'danger',
+        date: new Date().toISOString().slice(0,10),
+        resolved: false
+      });
+      newAlertsCount++;
+    }
+  });
+  res.json({ message: `Attendance check complete. Generated ${newAlertsCount} new alerts for staff.`, added: newAlertsCount });
+});
+
 // List of departments (meta)
 app.get('/api/departments', (_, res) => res.json(DEPARTMENTS));
 
