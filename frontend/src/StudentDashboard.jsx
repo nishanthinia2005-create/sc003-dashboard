@@ -57,6 +57,7 @@ function StatCard({ label, value, unit = '', color, icon, delay = 0 }) {
 export default function StudentDashboard({ user, onLogout }) {
   const [data, setData] = useState(null);
   const [absences, setAbsences] = useState([]);
+  const [disputesHistory, setDisputesHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -70,9 +71,10 @@ export default function StudentDashboard({ user, onLogout }) {
     setLoading(true);
     Promise.all([
       fetch(`${API}/api/students/${user.id}`).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); }),
-      fetch(`${API}/api/students/${user.id}/absences`).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
+      fetch(`${API}/api/students/${user.id}/absences`).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); }),
+      fetch(`${API}/api/disputes?studentId=${user.id}`).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
     ])
-      .then(([d, a]) => { setData(d); setAbsences(a); setError(null); })
+      .then(([d, a, disp]) => { setData(d); setAbsences(a); setDisputesHistory(disp); setError(null); })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, [user.id]);
@@ -88,6 +90,9 @@ export default function StudentDashboard({ user, onLogout }) {
         body: JSON.stringify({ studentId: user.id, dept: data.dept, date: disputeDate, reason: disputeReason })
       });
       if (!res.ok) throw new Error('Submission failed');
+      // Refresh history
+      fetch(`${API}/api/disputes?studentId=${user.id}`).then(r=>r.json()).then(setDisputesHistory);
+      
       setDisputeStatus('success');
       setDisputeDate('');
       setDisputeReason('');
@@ -246,6 +251,41 @@ export default function StudentDashboard({ user, onLogout }) {
             </div>
           </div>
         </div>
+
+        {/* My Past Complaints */}
+        {disputesHistory.length > 0 && (
+          <div className="glass animate-in" style={{ padding:24, borderRadius:16, animation:`fadeInUp 0.5s ease 300ms both`, marginTop: 16 }}>
+            <div style={{ fontSize:15, fontWeight:800, marginBottom:16, display:'flex', alignItems:'center', gap:10 }}>
+              My Past Complaints
+            </div>
+            <div style={{ overflowX:'auto' }}>
+              <table style={{ width:'100%', fontSize:13, borderCollapse:'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
+                    {['Date Disputed', 'Reason Submitted', 'Status'].map(h=>
+                      <th key={h} style={{ textAlign:'left', padding:'8px 14px', color: C.muted, fontWeight:700, fontSize:11, textTransform:'uppercase', letterSpacing:'.05em' }}>{h}</th>
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {disputesHistory.map((d,i)=>(
+                    <tr key={d.id} style={{ borderBottom:'1px solid rgba(255,255,255,0.04)', transition:'background .1s' }}>
+                      <td style={{ padding:'10px 14px', fontWeight:700 }}>{d.date}</td>
+                      <td style={{ padding:'10px 14px', color: C.muted }}>{d.reason}</td>
+                      <td style={{ padding:'10px 14px' }}>
+                        {d.status === 'resolved' ? (
+                          <span style={{ background:'rgba(46,213,115,0.15)', color:C.success, padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>Resolved ✓</span>
+                        ) : (
+                          <span style={{ background:'rgba(255,159,67,0.15)', color:C.warn, padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>Pending ⏳</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
       </main>
     </div>

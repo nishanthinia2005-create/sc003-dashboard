@@ -846,6 +846,68 @@ function AttendanceScannerButton({ onTrigger }) {
   );
 }
 
+// ── COMPLAINTS MANAGER ────────────────────────────────────────────────────────
+function ComplaintsPage() {
+  const { data, loading, error, refetch } = useData('/api/disputes');
+
+  const resolve = async (id) => {
+    try {
+      await fetch(`${API}/api/disputes/${id}/resolve`, { method: 'PATCH' });
+      refetch();
+    } catch(e) {}
+  };
+
+  if (loading) return <Loading />;
+  if (error) return <ErrorMsg msg={error} />;
+
+  return (
+    <div className="animate-in" style={{ paddingBottom: 40 }}>
+      <PageHeader title="Student Disputes" subtitle="Manage and resolve attendance complaints filed directly by students." icon="💬" />
+      
+      <div className="glass" style={{ borderRadius:16, padding:24 }}>
+        {data.length === 0 ? <div style={{ color:C.muted, textAlign:'center', padding:40 }}>No complaints have been filed yet.</div> : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width:'100%', fontSize:13, borderCollapse:'collapse', minWidth:800 }}>
+              <thead>
+                <tr style={{ borderBottom:'1px solid rgba(255,255,255,0.08)' }}>
+                  {['Student ID', 'Department', 'Absence Date', 'Student Reason', 'Status', 'Action'].map(h =>
+                    <th key={h} style={{ textAlign:'left', padding:'12px 14px', color: C.muted, fontWeight:700, fontSize:11, textTransform:'uppercase', letterSpacing:'.05em' }}>{h}</th>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {data.map(d => (
+                  <tr key={d.id} style={{ borderBottom:'1px solid rgba(255,255,255,0.04)', transition:'background .1s' }}>
+                    <td style={{ padding:'12px 14px', fontWeight:700, color:C.accent }}>{d.studentId}</td>
+                    <td style={{ padding:'12px 14px' }}>{d.dept}</td>
+                    <td style={{ padding:'12px 14px', fontWeight:600 }}>{d.date}</td>
+                    <td style={{ padding:'12px 14px', maxWidth:300, color:C.muted }}>{d.reason}</td>
+                    <td style={{ padding:'12px 14px' }}>
+                      {d.status === 'resolved' ? (
+                        <span style={{ background:'rgba(46,213,115,0.15)', color:C.success, padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>Resolved</span>
+                      ) : (
+                        <span style={{ background:'rgba(255,159,67,0.15)', color:C.warn, padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>Pending</span>
+                      )}
+                    </td>
+                    <td style={{ padding:'12px 14px' }}>
+                      {d.status !== 'resolved' && (
+                        <button onClick={() => resolve(d.id)} style={{ padding:'6px 12px', background:'rgba(46,213,115,0.1)', border:'1px solid rgba(46,213,115,0.3)', color:C.success, borderRadius:8, fontSize:11, fontWeight:700, cursor:'pointer', transition: 'all .2s' }}
+                          onMouseEnter={e=>e.currentTarget.style.background='rgba(46,213,115,0.2)'}
+                          onMouseLeave={e=>e.currentTarget.style.background='rgba(46,213,115,0.1)'}
+                        >✓ Resolve</button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── EXPORT SNAPSHOT ───────────────────────────────────────────────────────────
 function ExportButton() {
   const [loading, setLoading] = useState(false);
@@ -881,6 +943,7 @@ const NAV = [
   { id:'faculty',     label:'Faculty',              icon:'👩‍🏫' },
   { id:'financial',   label:'Financial',            icon:'💰' },
   { id:'atrisk',      label:'At-Risk Students',     icon:'⚠️' },
+  { id:'complaints',  label:'Student Disputes',     icon:'💬' },
 ];
 
 // ── ROOT APP ──────────────────────────────────────────────────────────────────
@@ -907,6 +970,7 @@ export default function App() {
     faculty:     <FacultyPage    />,
     financial:   <FinancialPage  />,
     atrisk:      <AtRiskPage     />,
+    complaints:  <ComplaintsPage />,
   };
 
   return (

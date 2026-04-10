@@ -2,7 +2,7 @@
 > hackathon@1.0.0 start
 > node server.js
 
-◇ injected env (0) from .env // tip: ⌘ custom filepath { path: '/custom/path/.env' }
+◇ injected env (0) from .env // tip: ⌘ enable debugging { debug: true }
 
 🚀  API running on http://localhost:4000
    Endpoints:
@@ -24,7 +24,3 @@
    POST /api/ai-insight            { section: "academic|departments|enrollment|kpis|faculty|financial" }
 
 
-[0mGET /api/summary [36m304[0m 15.504 ms - -[0m
-[0mGET /api/alerts?resolved=false [32m200[0m 1.577 ms - 615[0m
-[0mGET /api/summary [36m304[0m 0.771 ms - -[0m
-[0mGET /api/alerts?resolved=false [36m304[0m 0.785 ms - -[0m

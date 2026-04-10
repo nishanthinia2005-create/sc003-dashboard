@@ -85,6 +85,8 @@ let alerts = [
   { id: uuidv4(), dept: 'Mech',  issue: 'Faculty-student ratio improving',   severity: 'success', date: '2024-12', resolved: true  },
 ];
 
+let disputesList = [];
+
 const facultyData = DEPARTMENTS.map((dept, i) => {
   seed = 100 + i * 31;
   return {
@@ -330,16 +332,54 @@ app.post('/api/disputes', (req, res) => {
     return res.status(400).json({ error: 'studentId, date, and reason are required' });
   }
 
+  const disputeId = uuidv4();
+  const disputeTargetDate = new Date().toISOString().slice(0,10);
+
+  // Add to full tracking system
+  disputesList.unshift({
+    id: disputeId,
+    studentId,
+    dept: dept || 'Unknown',
+    date,
+    reason,
+    status: 'pending',
+    createdAt: disputeTargetDate
+  });
+
+  // Also add to dashboard alerts overview
   alerts.unshift({
-    id: uuidv4(),
+    id: disputeId, // Use same ID so we can resolve both
     dept: dept || 'Unknown',
     issue: `Attendance Dispute (${studentId}): Marked absent on ${date}. Reason: "${reason}"`,
     severity: 'warning',
-    date: new Date().toISOString().slice(0,10),
+    date: disputeTargetDate,
     resolved: false
   });
 
   res.json({ message: 'Dispute submitted. Staff has been alerted successfully.' });
+});
+
+// Get disputes (optional ?studentId= filter)
+app.get('/api/disputes', (req, res) => {
+  const { studentId } = req.query;
+  if (studentId) {
+    return res.json(disputesList.filter(d => d.studentId === studentId));
+  }
+  res.json(disputesList);
+});
+
+// Resolve a dispute
+app.patch('/api/disputes/:id/resolve', (req, res) => {
+  const dispute = disputesList.find(d => d.id === req.params.id);
+  if (!dispute) return res.status(404).json({ error: 'Dispute not found' });
+  
+  dispute.status = 'resolved';
+
+  // Also resolve the corresponding alert if it exists
+  const alert = alerts.find(a => a.id === req.params.id);
+  if (alert) alert.resolved = true;
+  
+  res.json({ message: 'Dispute resolved', dispute });
 });
 
 // Automated Attendance Checker
