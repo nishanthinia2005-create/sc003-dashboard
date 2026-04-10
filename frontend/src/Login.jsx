@@ -69,7 +69,7 @@ export default function Login({ onLogin }) {
             onMouseEnter={e=>e.currentTarget.style.transform='translateY(-2px)'}
             onMouseLeave={e=>e.currentTarget.style.transform=''}
           >
-            Start Session
+            Login
           </button>
         </form>
       </div>
