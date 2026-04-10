@@ -273,8 +273,10 @@ export default function StudentDashboard({ user, onLogout }) {
                       <td style={{ padding:'10px 14px', fontWeight:700 }}>{d.date}</td>
                       <td style={{ padding:'10px 14px', color: C.muted }}>{d.reason}</td>
                       <td style={{ padding:'10px 14px' }}>
-                        {d.status === 'resolved' ? (
-                          <span style={{ background:'rgba(46,213,115,0.15)', color:C.success, padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>Resolved ✓</span>
+                        {d.status === 'approved' ? (
+                          <span style={{ background:'rgba(46,213,115,0.15)', color:C.success, padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>Approved ✓</span>
+                        ) : d.status === 'rejected' ? (
+                          <span style={{ background:'rgba(255,71,87,0.15)', color:C.danger, padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>Rejected ✕</span>
                         ) : (
                           <span style={{ background:'rgba(255,159,67,0.15)', color:C.warn, padding:'3px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>Pending ⏳</span>
                         )}

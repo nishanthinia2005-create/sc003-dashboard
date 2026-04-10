@@ -850,9 +850,13 @@ function AttendanceScannerButton({ onTrigger }) {
 function ComplaintsPage() {
   const { data, loading, error, refetch } = useData('/api/disputes');
 
-  const resolve = async (id) => {
+  const updateStatus = async (id, status) => {
     try {
-      await fetch(`${API}/api/disputes/${id}/resolve`, { method: 'PATCH' });
+      await fetch(`${API}/api/disputes/${id}/status`, { 
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      });
       refetch();
     } catch(e) {}
   };
@@ -862,7 +866,7 @@ function ComplaintsPage() {
 
   return (
     <div className="animate-in" style={{ paddingBottom: 40 }}>
-      <PageHeader title="Student Disputes" subtitle="Manage and resolve attendance complaints filed directly by students." icon="💬" />
+      <PageHeader title="Student Appeals" subtitle="Manage and resolve attendance complaints filed directly by students." icon="⚖️" />
       
       <div className="glass" style={{ borderRadius:16, padding:24 }}>
         {data.length === 0 ? <div style={{ color:C.muted, textAlign:'center', padding:40 }}>No complaints have been filed yet.</div> : (
@@ -883,18 +887,26 @@ function ComplaintsPage() {
                     <td style={{ padding:'12px 14px', fontWeight:600 }}>{d.date}</td>
                     <td style={{ padding:'12px 14px', maxWidth:300, color:C.muted }}>{d.reason}</td>
                     <td style={{ padding:'12px 14px' }}>
-                      {d.status === 'resolved' ? (
-                        <span style={{ background:'rgba(46,213,115,0.15)', color:C.success, padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>Resolved</span>
+                      {d.status === 'approved' ? (
+                        <span style={{ background:'rgba(46,213,115,0.15)', color:C.success, padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>Approved</span>
+                      ) : d.status === 'rejected' ? (
+                        <span style={{ background:'rgba(255,71,87,0.15)', color:C.danger, padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>Rejected</span>
                       ) : (
                         <span style={{ background:'rgba(255,159,67,0.15)', color:C.warn, padding:'4px 10px', borderRadius:20, fontSize:11, fontWeight:700 }}>Pending</span>
                       )}
                     </td>
                     <td style={{ padding:'12px 14px' }}>
-                      {d.status !== 'resolved' && (
-                        <button onClick={() => resolve(d.id)} style={{ padding:'6px 12px', background:'rgba(46,213,115,0.1)', border:'1px solid rgba(46,213,115,0.3)', color:C.success, borderRadius:8, fontSize:11, fontWeight:700, cursor:'pointer', transition: 'all .2s' }}
-                          onMouseEnter={e=>e.currentTarget.style.background='rgba(46,213,115,0.2)'}
-                          onMouseLeave={e=>e.currentTarget.style.background='rgba(46,213,115,0.1)'}
-                        >✓ Resolve</button>
+                      {d.status === 'pending' && (
+                        <div style={{ display:'flex', gap:6 }}>
+                          <button onClick={() => updateStatus(d.id, 'approved')} style={{ padding:'6px 12px', background:'rgba(46,213,115,0.1)', border:'1px solid rgba(46,213,115,0.3)', color:C.success, borderRadius:8, fontSize:11, fontWeight:700, cursor:'pointer', transition: 'all .2s' }}
+                            onMouseEnter={e=>e.currentTarget.style.background='rgba(46,213,115,0.2)'}
+                            onMouseLeave={e=>e.currentTarget.style.background='rgba(46,213,115,0.1)'}
+                          >✓ Approve</button>
+                          <button onClick={() => updateStatus(d.id, 'rejected')} style={{ padding:'6px 12px', background:'rgba(255,71,87,0.1)', border:'1px solid rgba(255,71,87,0.3)', color:C.danger, borderRadius:8, fontSize:11, fontWeight:700, cursor:'pointer', transition: 'all .2s' }}
+                            onMouseEnter={e=>e.currentTarget.style.background='rgba(255,71,87,0.2)'}
+                            onMouseLeave={e=>e.currentTarget.style.background='rgba(255,71,87,0.1)'}
+                          >✕ Reject</button>
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -943,7 +955,7 @@ const NAV = [
   { id:'faculty',     label:'Faculty',              icon:'👩‍🏫' },
   { id:'financial',   label:'Financial',            icon:'💰' },
   { id:'atrisk',      label:'At-Risk Students',     icon:'⚠️' },
-  { id:'complaints',  label:'Student Disputes',     icon:'💬' },
+  { id:'complaints',  label:'Student Appeals',      icon:'⚖️' },
 ];
 
 // ── ROOT APP ──────────────────────────────────────────────────────────────────
