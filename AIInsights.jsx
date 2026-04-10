@@ -1,69 +1,77 @@
-// AI Insights Panel — add this as a floating button or sidebar section
-// Uses the Anthropic API to generate plain-English summaries of dashboard data
-//
-// Usage: import AIInsights from './AIInsights'; then <AIInsights data={yourData}/>
+// AI Insights Panel — fetches from /api/ai-insight on the Express backend
+// Usage: <AIInsights section="academic" />  (section = academic|departments|enrollment|kpis|faculty|financial)
 
 import { useState } from 'react';
 
-export default function AIInsights({ data, label = 'Get AI insights' }) {
+const API = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+
+export default function AIInsights({ section = 'academic', label = 'Get AI Insights' }) {
   const [insight, setInsight] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState('');
 
   async function fetchInsight() {
     setLoading(true);
     setInsight('');
+    setError('');
     try {
-      const res = await fetch('http://localhost:4000/api/ai-insight', {
-        method: 'POST',
+      const res = await fetch(`${API}/api/ai-insight`, {
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ data }),
+        body:    JSON.stringify({ section }),
       });
+      if (!res.ok) throw new Error(`Server returned ${res.status}`);
       const json = await res.json();
       setInsight(json.insight);
-    } catch {
-      setInsight('Could not load AI insights. Check your API key in the backend.');
+    } catch (e) {
+      setError('Could not load AI insights. Make sure the backend is running on port 4000.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   return (
     <div style={{ marginTop: 16 }}>
-      <button onClick={fetchInsight} disabled={loading} style={{
-        background: '#534AB7', color: '#fff', border: 'none',
-        borderRadius: 8, padding: '9px 16px', fontSize: 13,
-        cursor: loading ? 'wait' : 'pointer', fontWeight: 500,
-      }}>
-        {loading ? 'Analysing...' : label}
+      <button
+        id={`ai-btn-${section}`}
+        onClick={fetchInsight}
+        disabled={loading}
+        style={{
+          display: 'inline-flex', alignItems: 'center', gap: 7,
+          background: 'linear-gradient(135deg,#534AB7,#7b73d3)',
+          color: '#fff', border: 'none', borderRadius: 10,
+          padding: '10px 18px', fontSize: 13, fontWeight: 600,
+          cursor: loading ? 'wait' : 'pointer',
+          transition: 'opacity .2s, transform .1s', fontFamily: 'inherit',
+        }}
+      >
+        <span>✨</span>
+        {loading ? 'Analysing…' : label}
       </button>
-      {insight && (
+
+      {error && (
         <div style={{
-          marginTop: 12, padding: '14px 16px',
-          background: '#EEEDFE', borderRadius: 10,
-          fontSize: 14, lineHeight: 1.6, color: '#3C3489'
+          marginTop: 12, padding: '12px 16px',
+          background: '#fcebeb', borderRadius: 10,
+          fontSize: 13, color: '#a32d2d', border: '1px solid #f5c2c2',
         }}>
-          {insight}
+          {error}
+        </div>
+      )}
+
+      {insight && !error && (
+        <div style={{
+          marginTop: 14, padding: '16px 18px',
+          background: 'linear-gradient(135deg,#EEEDFE,#f0eeff)',
+          borderRadius: 12, border: '1px solid #d5d0f5',
+        }}>
+          {insight.split('\n').map((line, i) => (
+            <div key={i} style={{ fontSize: 14, lineHeight: 1.7, color: '#3C3489', marginBottom: i < insight.split('\n').length - 1 ? 8 : 0 }}>
+              {line}
+            </div>
+          ))}
         </div>
       )}
     </div>
   );
 }
-
-// ── ADD THIS ROUTE TO server.js ───────────────────────────────────────────
-/*
-const Anthropic = require('@anthropic-ai/sdk');
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-
-app.post('/api/ai-insight', async (req, res) => {
-  const { data } = req.body;
-  const msg = await client.messages.create({
-    model: 'claude-opus-4-6',
-    max_tokens: 300,
-    messages: [{
-      role: 'user',
-      content: `You are an institutional analytics advisor. Given this data: ${JSON.stringify(data)}
-      Write 3 bullet points of actionable insights for the admin. Be concise and specific.`
-    }]
-  });
-  res.json({ insight: msg.content[0].text });
-});
-*/
