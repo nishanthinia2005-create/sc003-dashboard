@@ -214,7 +214,6 @@ export default function StudentDashboard({ user, onLogout }) {
 
         </div>
 
-        </div>
 
         {/* 30-Day Daily Attendance */}
         <div className="glass animate-in" style={{ padding:24, borderRadius:16, animation:`fadeInUp 0.5s ease 220ms both`, marginTop: 16 }}>
