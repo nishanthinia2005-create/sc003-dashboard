@@ -301,6 +301,47 @@ app.get('/api/students/:id', (req, res) => {
   });
 });
 
+// Get specific student's recent absences
+app.get('/api/students/:id/absences', (req, res) => {
+  const idStr = req.params.id;
+  const numMatches = idStr.match(/\d+/);
+  const n = numMatches ? parseInt(numMatches[0]) : 42;
+  
+  // Predictably mock 3-5 absence dates
+  const absences = [];
+  // Use a localized scope variables to not overwrite global seededRand directly unexpectedly, actually just use it sequentially
+  seed = 600 + n * 13;
+  const count = Math.floor(3 + seededRand() * 3);
+  for (let i=0; i<count; i++) {
+    const day = Math.floor(1 + seededRand() * 28);
+    const month = Math.floor(1 + seededRand() * 10);
+    absences.push(`2024-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`);
+  }
+  
+  // Unique and Sort descending
+  const uniqueAbsences = [...new Set(absences)].sort((a,b) => b.localeCompare(a));
+  res.json(uniqueAbsences);
+});
+
+// Submit a new attendance dispute
+app.post('/api/disputes', (req, res) => {
+  const { studentId, dept, date, reason } = req.body;
+  if (!studentId || !date || !reason) {
+    return res.status(400).json({ error: 'studentId, date, and reason are required' });
+  }
+
+  alerts.unshift({
+    id: uuidv4(),
+    dept: dept || 'Unknown',
+    issue: `Attendance Dispute (${studentId}): Marked absent on ${date}. Reason: "${reason}"`,
+    severity: 'warning',
+    date: new Date().toISOString().slice(0,10),
+    resolved: false
+  });
+
+  res.json({ message: 'Dispute submitted. Staff has been alerted successfully.' });
+});
+
 // Automated Attendance Checker
 app.post('/api/trigger-attendance-check', (req, res) => {
   const lowAtt = atRiskStudents.filter(s => s.attendance < 60);

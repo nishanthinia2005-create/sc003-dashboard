@@ -27,7 +27,7 @@ export default function Login({ onLogin }) {
         
         <div style={{ textAlign:'center', marginBottom:32 }}>
           <div style={{ width:48, height:48, margin:'0 auto 16px', borderRadius:14, background:`linear-gradient(135deg,${C.accent},${C.accent2})`, display:'flex', alignItems:'center', justifyContent:'center', fontSize:24, boxShadow:`0 8px 24px rgba(108,99,255,0.4)` }}>📡</div>
-          <h1 style={{ fontSize:24, fontWeight:800, color:'#fff', marginBottom:8 }}>SC003 Portal</h1>
+          <h1 style={{ fontSize:24, fontWeight:800, color:'#fff', marginBottom:8 }}>Institutional Portal</h1>
           <p style={{ fontSize:14, color: C.muted }}>Sign in to access your dashboard</p>
         </div>
 

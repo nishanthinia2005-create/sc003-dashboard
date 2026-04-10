@@ -56,17 +56,48 @@ function StatCard({ label, value, unit = '', color, icon, delay = 0 }) {
 
 export default function StudentDashboard({ user, onLogout }) {
   const [data, setData] = useState(null);
+  const [absences, setAbsences] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // Dispute states
+  const [disputeDate, setDisputeDate] = useState('');
+  const [disputeReason, setDisputeReason] = useState('');
+  const [disputeStatus, setDisputeStatus] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
   const load = useCallback(() => {
     setLoading(true);
-    fetch(`${API}/api/students/${user.id}`)
-      .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-      .then(d => { setData(d); setError(null); })
+    Promise.all([
+      fetch(`${API}/api/students/${user.id}`).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); }),
+      fetch(`${API}/api/students/${user.id}/absences`).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
+    ])
+      .then(([d, a]) => { setData(d); setAbsences(a); setError(null); })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, [user.id]);
+
+  const handleDisputeSubmit = async (e) => {
+    e.preventDefault();
+    if (!disputeDate || !disputeReason) return;
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API}/api/disputes`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentId: user.id, dept: data.dept, date: disputeDate, reason: disputeReason })
+      });
+      if (!res.ok) throw new Error('Submission failed');
+      setDisputeStatus('success');
+      setDisputeDate('');
+      setDisputeReason('');
+      setTimeout(() => setDisputeStatus(null), 5000);
+    } catch (e) {
+      setDisputeStatus('error');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   useEffect(() => { load(); }, [load]);
 
@@ -168,6 +199,52 @@ export default function StudentDashboard({ user, onLogout }) {
             )}
           </div>
 
+        </div>
+
+        {/* Dispute Section */}
+        <div className="glass animate-in" style={{ padding:24, borderRadius:16, animation:`fadeInUp 0.5s ease 250ms both`, marginTop: 16 }}>
+          <div style={{ fontSize:16, fontWeight:800, marginBottom:16, display:'flex', alignItems:'center', gap:10 }}>
+            <span>📅</span> Attendance Log & Disputes
+          </div>
+          <div style={{ display:'flex', gap:24, flexWrap:'wrap' }}>
+            <div style={{ flex: 1, minWidth:250 }}>
+              <div style={{ fontSize:11, color: C.muted, textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600, marginBottom:12 }}>Recent Absences</div>
+              {absences.length === 0 ? <div style={{ color:C.muted, fontSize:13 }}>No recent absences found.</div> : 
+                <ul style={{ listStyle:'none', padding:0, margin:0, display:'flex', flexDirection:'column', gap:8 }}>
+                  {absences.map(a => (
+                    <li key={a} style={{ padding:'10px 14px', background:'rgba(255,255,255,0.03)', borderRadius:8, fontSize:13, display:'flex', justifyContent:'space-between' }}>
+                      <span style={{ fontWeight:600 }}>Absent</span>
+                      <span style={{ color:C.muted }}>{a}</span>
+                    </li>
+                  ))}
+                </ul>
+              }
+            </div>
+
+            <div style={{ flex: 1.5, minWidth: 300 }}>
+              <div style={{ fontSize:11, color: C.muted, textTransform:'uppercase', letterSpacing:'.08em', fontWeight:600, marginBottom:12 }}>File a Complaint</div>
+              <p style={{ fontSize:12, color:C.muted, marginBottom:16 }}>If you believe an absence was marked in error or due to partiality, file a dispute below. This will directly alert the department staff.</p>
+              
+              <form onSubmit={handleDisputeSubmit} style={{ display:'flex', flexDirection:'column', gap:12 }}>
+                <div style={{ display:'flex', gap:12 }}>
+                  <select value={disputeDate} onChange={e=>setDisputeDate(e.target.value)} required style={{ flex:1, padding:'10px', borderRadius:8, background:'rgba(0,0,0,0.3)', border:'1px solid rgba(255,255,255,0.1)', color:'#fff', fontSize:13, outline:'none', WebkitAppearance:'none' }}>
+                    <option value="" disabled>Select Date...</option>
+                    {absences.map(a => <option key={a} value={a}>{a}</option>)}
+                  </select>
+                </div>
+                <textarea 
+                  value={disputeReason} onChange={e=>setDisputeReason(e.target.value)} required
+                  placeholder="Explain why this absence is incorrect..."
+                  style={{ width:'100%', padding:'12px', borderRadius:8, background:'rgba(0,0,0,0.3)', border:'1px solid rgba(255,255,255,0.1)', color:'#fff', fontSize:13, minHeight:80, outline:'none', resize:'vertical', boxSizing:'border-box', fontFamily:'inherit' }}
+                />
+                <button type="submit" disabled={submitting} style={{ padding:'10px', borderRadius:8, background:`linear-gradient(135deg,${C.accent},${C.accent2})`, color:'#fff', border:'none', fontSize:13, fontWeight:700, cursor:'pointer', opacity: submitting ? 0.7 : 1 }}>
+                  {submitting ? 'Submitting...' : 'Submit Complaint'}
+                </button>
+                {disputeStatus === 'success' && <div style={{ color:C.success, fontSize:12, marginTop:4 }}>✓ Complaint submitted successfully. Staff has been notified.</div>}
+                {disputeStatus === 'error' && <div style={{ color:C.danger, fontSize:12, marginTop:4 }}>⚠️ Error submitting complaint. Try again later.</div>}
+              </form>
+            </div>
+          </div>
         </div>
 
       </main>
