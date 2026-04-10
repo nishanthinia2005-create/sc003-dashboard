@@ -866,7 +866,7 @@ function ComplaintsPage() {
 
   return (
     <div className="animate-in" style={{ paddingBottom: 40 }}>
-      <PageHeader title="Student Appeals" subtitle="Manage and resolve attendance complaints filed directly by students." icon="⚖️" />
+      <SectionHeader title="Student Appeals" sub="Manage and resolve attendance complaints filed directly by students." />
       
       <div className="glass" style={{ borderRadius:16, padding:24 }}>
         {data.length === 0 ? <div style={{ color:C.muted, textAlign:'center', padding:40 }}>No complaints have been filed yet.</div> : (
