@@ -325,6 +325,34 @@ app.get('/api/students/:id/absences', (req, res) => {
   res.json(uniqueAbsences);
 });
 
+// Get specific student's daily attendance history (last 30 days)
+app.get('/api/students/:id/daily-attendance', (req, res) => {
+  const idStr = req.params.id;
+  const existing = atRiskStudents.find(s => s.id === idStr);
+  let attRate = existing ? existing.attendance : 75;
+  
+  const numMatches = idStr.match(/\d+/);
+  const n = numMatches ? parseInt(numMatches[0]) : 42;
+  seed = 700 + n * 11;
+  
+  const history = [];
+  const today = new Date();
+  
+  for (let i = 29; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    
+    // Skip weekends
+    if (d.getDay() === 0 || d.getDay() === 6) continue;
+
+    const isPresent = (seededRand() * 100) <= attRate;
+    history.push({ date: dateStr, status: isPresent ? 'present' : 'absent' });
+  }
+  
+  res.json(history);
+});
+
 // Submit a new attendance dispute
 app.post('/api/disputes', (req, res) => {
   const { studentId, dept, date, reason } = req.body;

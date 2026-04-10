@@ -57,6 +57,7 @@ function StatCard({ label, value, unit = '', color, icon, delay = 0 }) {
 export default function StudentDashboard({ user, onLogout }) {
   const [data, setData] = useState(null);
   const [absences, setAbsences] = useState([]);
+  const [dailyAttendance, setDailyAttendance] = useState([]);
   const [disputesHistory, setDisputesHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -72,9 +73,16 @@ export default function StudentDashboard({ user, onLogout }) {
     Promise.all([
       fetch(`${API}/api/students/${user.id}`).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); }),
       fetch(`${API}/api/students/${user.id}/absences`).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); }),
-      fetch(`${API}/api/disputes?studentId=${user.id}`).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
+      fetch(`${API}/api/disputes?studentId=${user.id}`).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); }),
+      fetch(`${API}/api/students/${user.id}/daily-attendance`).then(r => { if(!r.ok) throw new Error(r.status); return r.json(); })
     ])
-      .then(([d, a, disp]) => { setData(d); setAbsences(a); setDisputesHistory(disp); setError(null); })
+      .then(([d, a, disp, daily]) => { 
+        setData(d); 
+        setAbsences(daily.filter(x => x.status === 'absent').map(x => x.date)); 
+        setDisputesHistory(disp); 
+        setDailyAttendance(daily);
+        setError(null); 
+      })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, [user.id]);
@@ -204,6 +212,32 @@ export default function StudentDashboard({ user, onLogout }) {
             )}
           </div>
 
+        </div>
+
+        </div>
+
+        {/* 30-Day Daily Attendance */}
+        <div className="glass animate-in" style={{ padding:24, borderRadius:16, animation:`fadeInUp 0.5s ease 220ms both`, marginTop: 16 }}>
+          <div style={{ fontSize:15, fontWeight:800, marginBottom:16, display:'flex', alignItems:'center', gap:10 }}>
+            <span style={{ fontSize:18 }}>🗓️</span> 30-Day Attendance History
+          </div>
+          <div style={{ display:'flex', gap:6, overflowX:'auto', paddingBottom:8 }}>
+            {dailyAttendance.map((day, i) => (
+              <div 
+                key={i} 
+                title={`${day.date}: ${day.status.toUpperCase()}`}
+                style={{ 
+                  flexShrink:0, width:18, height:18, borderRadius:4, 
+                  background: day.status === 'present' ? 'rgba(46,213,115,0.8)' : 'rgba(255,71,87,0.8)',
+                  cursor:'crosshair', transition:'transform .1s', 
+                  border:'1px solid rgba(255,255,255,0.1)'
+                }}
+                onMouseEnter={e => e.currentTarget.style.transform='scale(1.2)'}
+                onMouseLeave={e => e.currentTarget.style.transform='scale(1)'}
+              />
+            ))}
+            {dailyAttendance.length === 0 && <div style={{ color:C.muted, fontSize:13 }}>Loading history...</div>}
+          </div>
         </div>
 
         {/* Dispute Section */}

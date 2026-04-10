@@ -1,0 +1,26 @@
+
+> hackathon@1.0.0 start
+> node server.js
+
+◇ injected env (0) from .env // tip: ⌘ suppress logs { quiet: true }
+
+🚀  API running on http://localhost:4000
+   Endpoints:
+   GET  /health
+   GET  /api/summary
+   GET  /api/academic-performance  [?year=]
+   GET  /api/department-comparison [?dept=]
+   GET  /api/department-comparison/:dept
+   GET  /api/enrollment-trends     [?predicted=]
+   GET  /api/kpis                  [?status=]
+   GET  /api/alerts                [?resolved=&dept=&severity=]
+   POST /api/alerts
+   PATCH /api/alerts/:id/resolve
+   GET  /api/faculty               [?dept=]
+   GET  /api/financial             [?year=]
+   GET  /api/students/at-risk      [?risk=&dept=&page=&limit=]
+   GET  /api/departments
+   GET  /api/snapshot
+   POST /api/ai-insight            { section: "academic|departments|enrollment|kpis|faculty|financial" }
+
+
